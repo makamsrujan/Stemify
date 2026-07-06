@@ -1,7 +1,8 @@
-import { Tabs } from 'expo-router';
+import { Tabs, useLocalSearchParams } from 'expo-router';
 import { StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../constants/theme';
+import { AnalysisProvider } from '../../lib/AnalysisContext';
 
 const TABS = [
   { name: 'overview',  icon: 'home',            label: 'Overview' },
@@ -14,28 +15,33 @@ const TABS = [
 ];
 
 export default function ResultsLayout() {
+  const { id } = useLocalSearchParams<{ id: string }>();
+
   return (
-    <Tabs
-      screenOptions={{
-        headerShown: false,
-        tabBarStyle: styles.bar,
-        tabBarLabelStyle: styles.label,
-        tabBarActiveTintColor: colors.green,
-        tabBarInactiveTintColor: colors.text3,
-        tabBarItemStyle: styles.item,
-      }}
-    >
-      {TABS.map(t => (
-        <Tabs.Screen
-          key={t.name}
-          name={t.name}
-          options={{
-            tabBarLabel: t.label,
-            tabBarIcon: ({ color }) => <Ionicons name={t.icon as any} size={18} color={color} />,
-          }}
-        />
-      ))}
-    </Tabs>
+    <AnalysisProvider id={id || ''}>
+      <Tabs
+        screenOptions={{
+          headerShown: false,
+          tabBarStyle: styles.bar,
+          tabBarLabelStyle: styles.label,
+          tabBarActiveTintColor: colors.green,
+          tabBarInactiveTintColor: colors.text3,
+          tabBarItemStyle: styles.item,
+        }}
+      >
+        {TABS.map(t => (
+          <Tabs.Screen
+            key={t.name}
+            name={t.name}
+            initialParams={{ id }}
+            options={{
+              tabBarLabel: t.label,
+              tabBarIcon: ({ color }) => <Ionicons name={t.icon as any} size={18} color={color} />,
+            }}
+          />
+        ))}
+      </Tabs>
+    </AnalysisProvider>
   );
 }
 

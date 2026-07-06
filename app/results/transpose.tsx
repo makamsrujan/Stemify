@@ -1,17 +1,14 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, NOTES, NOTES_FLAT } from '../../constants/theme';
-import { loadHistory, AnalysisRecord } from '../../lib/storage';
 import { getScaleChords, transposeChord } from '../../lib/dsp';
+import { useAnalysis } from '../../lib/AnalysisContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function TransposeScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
-  const [rec, setRec] = useState<AnalysisRecord | null>(null);
+  const { record: rec } = useAnalysis();
   const [semi, setSemi] = useState(0);
-  useEffect(() => { loadHistory().then(h => setRec(h.find(r => r.id === id) || null)); }, [id]);
   if (!rec) return <View style={s.safe} />;
 
   const origRoot = rec.keyRoot;

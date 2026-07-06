@@ -31,6 +31,10 @@ export default function RootLayout() {
           options={{ tabBarIcon: ({ focused }) => <TabIcon name="time" focused={focused} /> }}
         />
         <Tabs.Screen
+          name="search"
+          options={{ tabBarIcon: ({ focused }) => <TabIcon name="search" focused={focused} /> }}
+        />
+        <Tabs.Screen
           name="settings"
           options={{ tabBarIcon: ({ focused }) => <TabIcon name="settings-sharp" focused={focused} /> }}
         />

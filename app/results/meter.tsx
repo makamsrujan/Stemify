@@ -1,9 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
 import Svg, { Line, Circle, Text as SvgText } from 'react-native-svg';
 import { colors, TIME_SIGNATURES } from '../../constants/theme';
-import { loadHistory, AnalysisRecord } from '../../lib/storage';
+import { useAnalysis } from '../../lib/AnalysisContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Dimensions } from 'react-native';
 
@@ -38,9 +37,7 @@ function BeatGrid({ beats, grouping }: { beats: number; grouping: string }) {
 }
 
 export default function MeterScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
-  const [rec, setRec] = useState<AnalysisRecord | null>(null);
-  useEffect(() => { loadHistory().then(h => setRec(h.find(r => r.id === id) || null)); }, [id]);
+  const { record: rec } = useAnalysis();
   if (!rec) return <View style={s.safe} />;
 
   const ts = TIME_SIGNATURES[rec.timeSig] || TIME_SIGNATURES['4/4'];

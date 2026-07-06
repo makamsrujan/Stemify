@@ -1,14 +1,12 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
 import { colors, MODES, EXOTIC_SCALES, TIME_SIGNATURES, NOTES } from '../../constants/theme';
-import { loadHistory, AnalysisRecord } from '../../lib/storage';
+import { AnalysisRecord } from '../../lib/storage';
+import { useAnalysis } from '../../lib/AnalysisContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function TheoryScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
-  const [rec, setRec] = useState<AnalysisRecord | null>(null);
-  useEffect(() => { loadHistory().then(h => setRec(h.find(r => r.id === id) || null)); }, [id]);
+  const { record: rec } = useAnalysis();
   if (!rec) return <View style={s.safe}><Text style={s.empty}>Loading…</Text></View>;
 
   const mode = MODES.find(m => m.name === rec.modeName) || MODES[0];

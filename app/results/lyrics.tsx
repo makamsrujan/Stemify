@@ -1,21 +1,17 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
 import { colors } from '../../constants/theme';
-import { loadHistory, AnalysisRecord } from '../../lib/storage';
 import { fetchLyrics, LyricsResult } from '../../lib/lyrics';
+import { useAnalysis } from '../../lib/AnalysisContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function LyricsScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
-  const [rec, setRec] = useState<AnalysisRecord | null>(null);
+  const { record: rec } = useAnalysis();
   const [result, setResult] = useState<LyricsResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [manualTitle, setManualTitle] = useState('');
   const [manualArtist, setManualArtist] = useState('');
   const [tried, setTried] = useState(false);
-
-  useEffect(() => { loadHistory().then(h => setRec(h.find(r => r.id === id) || null)); }, [id]);
 
   async function doFetch() {
     if (!rec) return;

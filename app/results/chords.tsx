@@ -1,19 +1,16 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
 import { colors, NOTES_FLAT, EXOTIC_SCALES } from '../../constants/theme';
-import { loadHistory, AnalysisRecord } from '../../lib/storage';
 import { getScaleChords, getExtendedChords } from '../../lib/dsp';
+import { useAnalysis } from '../../lib/AnalysisContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 type View_ = 'diatonic' | 'extended' | 'exotic';
 
 export default function ChordsScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
-  const [rec, setRec] = useState<AnalysisRecord | null>(null);
+  const { record: rec } = useAnalysis();
   const [view, setView] = useState<View_>('diatonic');
   const [selScale, setSelScale] = useState<string | null>(null);
-  useEffect(() => { loadHistory().then(h => setRec(h.find(r => r.id === id) || null)); }, [id]);
   if (!rec) return <View style={s.safe} />;
 
   const diatonic = getScaleChords(rec.keyRoot, rec.keyMode);

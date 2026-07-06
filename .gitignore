@@ -39,3 +39,10 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# Backend
+stemify-backend/venv/
+stemify-backend/__pycache__/
+stemify-backend/uploads/
+stemify-backend/stems/
+stemify-backend/*.pyc

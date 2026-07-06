@@ -25,7 +25,10 @@ async function fetchAudd(uri: string): Promise<{ title: string; artist: string }
 async function fetchLRCLIB(title: string, artist: string): Promise<LyricsResult | null> {
   try {
     const q = encodeURIComponent(`${title} ${artist}`);
-    const res = await fetch(`https://lrclib.net/api/search?q=${q}`);
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
+    const res = await fetch(`https://lrclib.net/api/search?q=${q}`, { signal: controller.signal });
+    clearTimeout(timeout);
     const arr = await res.json();
     if (!Array.isArray(arr) || arr.length === 0) return null;
     const hit = arr[0];
@@ -43,7 +46,10 @@ async function fetchLRCLIB(title: string, artist: string): Promise<LyricsResult 
 async function fetchLyricsOvh(title: string, artist: string): Promise<LyricsResult | null> {
   try {
     const a = encodeURIComponent(artist), t = encodeURIComponent(title);
-    const res = await fetch(`https://api.lyrics.ovh/v1/${a}/${t}`);
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
+    const res = await fetch(`https://api.lyrics.ovh/v1/${a}/${t}`, { signal: controller.signal });
+    clearTimeout(timeout);
     const j = await res.json();
     if (j?.lyrics) return { title, artist, lyrics: j.lyrics, source: 'Lyrics.ovh', synced: false };
   } catch {}

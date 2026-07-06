@@ -1,13 +1,13 @@
-import React, { useState, useRef } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert, Platform, ActivityIndicator } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert, ActivityIndicator, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system';
-import { Audio } from 'expo-av';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../constants/theme';
-import { computeChroma, detectKey, detectBPM, buildWaveform, getScaleChords, getExtendedChords } from '../lib/dsp';
+import { computeChroma, detectKey, detectBPM, buildWaveform } from '../lib/dsp';
 import { saveAnalysis } from '../lib/storage';
+import { saveSong, uploadForStems, uploadForTranscription, checkHealth } from '../lib/api';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 type Phase = 'idle' | 'loading' | 'decoding' | 'analyzing';
@@ -18,6 +18,21 @@ export default function HomeScreen() {
   const [label, setLabel] = useState('');
 
   async function pickAndAnalyze() {
+    if (Platform.OS === 'web') {
+      // Web: use HTML file input
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'audio/*';
+      input.onchange = async (e: any) => {
+        const file: File = e.target.files[0];
+        if (!file) return;
+        const uri = URL.createObjectURL(file);
+        analyzeWeb(uri, file.name, file);
+      };
+      input.click();
+      return;
+    }
+    // Native: use DocumentPicker
     try {
       const result = await DocumentPicker.getDocumentAsync({
         type: ['audio/*'],
@@ -25,62 +40,85 @@ export default function HomeScreen() {
       });
       if (result.canceled || !result.assets?.[0]) return;
       const asset = result.assets[0];
-      analyze(asset.uri, asset.name || 'Unknown');
+      analyzeNative(asset.uri, asset.name || 'Unknown');
     } catch (e) {
       Alert.alert('Error', 'Could not open file.');
     }
   }
 
-  async function analyze(uri: string, fileName: string) {
-    setPhase('loading');
-    setLabel('Loading audio…');
+  async function analyzeWeb(objectUrl: string, fileName: string, file: File) {
+    setPhase('loading'); setLabel('Loading audio…');
     try {
-      setPhase('decoding');
-      setLabel('Decoding audio…');
-
-      // Load with expo-av to get duration info
-      const { sound, status } = await Audio.Sound.createAsync({ uri });
-      const dur = (status as any).durationMillis ? (status as any).durationMillis / 1000 : 0;
-      await sound.unloadAsync();
-
-      setLabel('Computing chromagram…');
-      // Read raw bytes for DSP
-      const b64 = await FileSystem.readAsStringAsync(uri, { encoding: FileSystem.EncodingType.Base64 });
-      const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
-      // Downsample bytes to float32 PCM approximation (mono, 22050 Hz equivalent)
-      const data = pcmFromBytes(bytes);
-      const SR = 22050;
-
-      setPhase('analyzing');
-      setLabel('Detecting key…');
-      const chroma = computeChroma(data, SR);
-      const keyInfo = detectKey(chroma);
-
-      setLabel('Detecting BPM…');
-      const bpmInfo = detectBPM(data, SR);
-
-      setLabel('Building waveform…');
-      const waveform = buildWaveform(data, 300);
-
-      const record = await saveAnalysis({
-        fileName, duration: dur,
-        key: `${keyInfo.name} ${keyInfo.mode === 'major' ? 'Major' : 'Minor'}`,
-        keyRoot: keyInfo.root, keyMode: keyInfo.mode,
-        modeName: keyInfo.modeName, bpm: bpmInfo.bpm,
-        timeSig: bpmInfo.timeSig, confidence: keyInfo.confidence,
-        waveform, chroma: Array.from(chroma),
-      });
-
+      setPhase('decoding'); setLabel('Reading audio…');
+      const arrayBuffer = await file.arrayBuffer();
+      const bytes = new Uint8Array(arrayBuffer);
+      await runAnalysis(bytes, fileName, objectUrl, file);
+    } catch (err: any) {
       setPhase('idle');
-      router.push({ pathname: '/results/overview', params: { id: record.id } });
-    } catch (err) {
-      setPhase('idle');
-      Alert.alert('Analysis failed', 'Could not analyze audio. Please try another file.');
+      Alert.alert('Analysis failed', err?.message || String(err));
     }
   }
 
+  async function analyzeNative(uri: string, fileName: string) {
+    setPhase('loading'); setLabel('Loading audio…');
+    try {
+      setPhase('decoding'); setLabel('Reading audio…');
+      const response = await fetch(uri);
+      const arrayBuffer = await response.arrayBuffer();
+      const bytes = new Uint8Array(arrayBuffer);
+      await runAnalysis(bytes, fileName, uri);
+    } catch (err: any) {
+      setPhase('idle');
+      Alert.alert('Analysis failed', err?.message || String(err));
+    }
+  }
+
+  async function runAnalysis(bytes: Uint8Array, fileName: string, uri: string, fileObj?: File) {
+    setPhase('analyzing'); setLabel('Computing chromagram…');
+    const data = pcmFromBytes(bytes);
+    const SR = 22050;
+
+    setLabel('Detecting key…');
+    const chroma = computeChroma(data, SR);
+    const keyInfo = detectKey(chroma);
+
+    setLabel('Detecting BPM…');
+    const bpmInfo = detectBPM(data, SR);
+
+    setLabel('Building waveform…');
+    const waveform = buildWaveform(data, 300);
+
+    const record = await saveAnalysis({
+      fileName, duration: 0,
+      key: `${keyInfo.name} ${keyInfo.mode === 'major' ? 'Major' : 'Minor'}`,
+      keyRoot: keyInfo.root, keyMode: keyInfo.mode,
+      modeName: keyInfo.modeName, bpm: bpmInfo.bpm,
+      timeSig: bpmInfo.timeSig, confidence: keyInfo.confidence,
+      waveform, chroma: Array.from(chroma),
+    });
+
+    // Save to cloud + trigger stems & transcription in background
+    setLabel('Saving to cloud…');
+    try {
+      const online = await checkHealth();
+      if (online) {
+        await saveSong({
+          id: record.id, file_name: fileName,
+          key_name: record.key, key_root: keyInfo.root, key_mode: keyInfo.mode,
+          mode_name: keyInfo.modeName, bpm: bpmInfo.bpm, time_sig: bpmInfo.timeSig,
+          confidence: keyInfo.confidence, duration: 0,
+          chroma: Array.from(chroma), waveform,
+        });
+        uploadForStems(record.id, uri, fileName, fileObj).catch(() => {});
+        uploadForTranscription(record.id, uri, fileName, fileObj).catch(() => {});
+      }
+    } catch {}
+
+    setPhase('idle');
+    router.push({ pathname: '/results/overview', params: { id: record.id } });
+  }
+
   function pcmFromBytes(bytes: Uint8Array): Float32Array {
-    // Skip first 44 bytes (WAV header if present) and treat remaining as int16 LE
     const start = bytes.length > 100 ? 44 : 0;
     const samples = Math.floor((bytes.length - start) / 2);
     const out = new Float32Array(Math.max(samples, 1));
@@ -99,13 +137,11 @@ export default function HomeScreen() {
   return (
     <SafeAreaView style={styles.safe}>
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        {/* Header */}
         <View style={styles.header}>
           <Text style={styles.logo}>STEMIFY</Text>
           <Text style={styles.logoSub}>PRO</Text>
         </View>
 
-        {/* Hero */}
         <View style={styles.hero}>
           <TouchableOpacity style={styles.micButton} onPress={pickAndAnalyze} disabled={busy} activeOpacity={0.8}>
             <View style={styles.micOuter}>
@@ -123,7 +159,6 @@ export default function HomeScreen() {
           </Text>
         </View>
 
-        {/* Feature chips */}
         {!busy && (
           <View style={styles.chips}>
             {FEATURES.map(f => (
@@ -148,6 +183,8 @@ const FEATURES = [
   { label: 'Exotic Scales', icon: 'planet', color: colors.red },
   { label: 'Lyrics', icon: 'chatbubbles', color: colors.purple },
   { label: 'Transpose', icon: 'swap-horizontal', color: colors.green },
+  { label: 'Sheet Music', icon: 'document-text', color: colors.amber },
+  { label: 'AI Stems', icon: 'git-branch', color: colors.teal },
 ];
 
 const styles = StyleSheet.create({
@@ -155,7 +192,7 @@ const styles = StyleSheet.create({
   scroll: { flexGrow: 1, padding: 24, paddingTop: 16 },
   header: { flexDirection: 'row', alignItems: 'baseline', marginBottom: 48 },
   logo: { fontSize: 22, fontWeight: '900', color: colors.text, letterSpacing: 4 },
-  logoSub: { fontSize: 11, fontWeight: '700', color: colors.green, letterSpacing: 3, marginLeft: 4, marginBottom: 2 },
+  logoSub: { fontSize: 11, fontWeight: '700', color: colors.green, letterSpacing: 3, marginLeft: 4 },
   hero: { alignItems: 'center', paddingVertical: 32 },
   micButton: { marginBottom: 32 },
   micOuter: { width: 160, height: 160, borderRadius: 80, borderWidth: 1, borderColor: colors.green + '33', alignItems: 'center', justifyContent: 'center' },
