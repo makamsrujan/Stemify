@@ -43,4 +43,4 @@ uvicorn main:app --reload --port 8001
 
 ## Interactive API Docs
 
-Visit http://localhost:8001/docs after starting the server.
+Visit **http://localhost:8001/docs** after starting the server.

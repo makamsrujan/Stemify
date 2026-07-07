@@ -19,7 +19,11 @@ from stems import separate_stems
 from transcribe import transcribe_audio
 from schemas import SongOut, SongSave, SearchResult
 
-app = FastAPI(title="Stemify Backend", version="1.0.0")
+app = FastAPI(
+    title="Stemify Pro",
+    description="Professional music analysis app - Detect key, BPM, mode, chords, time signature, lyrics, and AI stem separation (vocals/drums/bass/other) using Demucs and Basic Pitch",
+    version="1.0.0"
+)
 
 app.add_middleware(
     CORSMiddleware,
@@ -35,11 +39,11 @@ async def startup():
     await init_db()
 
 
-# ─── Save analysis ────────────────────────────────────────────────────────────
+# ─── Save analysis ──────────────────────────────────────────────────────────
 
 @app.post("/songs", response_model=SongOut)
 async def save_song(body: SongSave, db: AsyncSession = Depends(get_db)):
-    """Save an analysis result from the app into the database."""
+    """Save an analysis result from the app into the database"""
     song = Song(
         id=body.id or str(uuid.uuid4()),
         file_name=body.file_name,
@@ -64,7 +68,7 @@ async def save_song(body: SongSave, db: AsyncSession = Depends(get_db)):
     return song
 
 
-# ─── Upload audio + trigger stem separation ───────────────────────────────────
+# ─── Upload audio + trigger stem separation ──────────────────────────────────
 
 @app.post("/songs/{song_id}/stems")
 async def upload_for_stems(
@@ -73,7 +77,7 @@ async def upload_for_stems(
     file: UploadFile = File(...),
     db: AsyncSession = Depends(get_db),
 ):
-    """Upload audio file and start Demucs stem separation in the background."""
+    """Upload audio file and start Demucs stem separation in the background"""
     song = await db.get(Song, song_id)
     if not song:
         raise HTTPException(404, "Song not found")
@@ -110,10 +114,11 @@ async def run_stems(song_id: str, audio_path: str, db: AsyncSession):
         await db.commit()
 
 
-# ─── Get stem status + stream stem files ─────────────────────────────────────
+# ─── Get stem status + stream stem files ───────────────────────────────────────
 
 @app.get("/songs/{song_id}/stems/status")
 async def stems_status(song_id: str, db: AsyncSession = Depends(get_db)):
+    """Check if stem separation is complete for a song"""
     song = await db.get(Song, song_id)
     if not song:
         raise HTTPException(404, "Song not found")
@@ -125,7 +130,7 @@ async def stems_status(song_id: str, db: AsyncSession = Depends(get_db)):
 
 @app.get("/songs/{song_id}/stems/{part}")
 async def get_stem(song_id: str, part: str, db: AsyncSession = Depends(get_db)):
-    """Stream a stem audio file (vocals / drums / bass / other)."""
+    """Stream a stem audio file (vocals / drums / bass / other)"""
     song = await db.get(Song, song_id)
     if not song or song.stems_ready != 1:
         raise HTTPException(404, "Stems not ready")
@@ -141,19 +146,20 @@ async def get_stem(song_id: str, part: str, db: AsyncSession = Depends(get_db)):
     return FileResponse(path, media_type="audio/mpeg")
 
 
-# ─── Search ───────────────────────────────────────────────────────────────────
+# ─── Search ────────────────────────────────────────────────────────────────
 
 @app.get("/songs/search", response_model=list[SearchResult])
 async def search_songs(
     q: Optional[str] = Query(None, description="Search by title or artist"),
     key: Optional[str] = Query(None, description="e.g. G Minor"),
     mode: Optional[str] = Query(None, description="e.g. Dorian"),
-    bpm_min: Optional[int] = Query(None),
-    bpm_max: Optional[int] = Query(None),
+    bpm_min: Optional[int] = Query(None, description="Minimum BPM"),
+    bpm_max: Optional[int] = Query(None, description="Maximum BPM"),
     time_sig: Optional[str] = Query(None, description="e.g. 4/4"),
     limit: int = Query(50, le=200),
     db: AsyncSession = Depends(get_db),
 ):
+    """Search songs by title, artist, key, mode, or BPM range"""
     stmt = select(Song)
 
     if q:
@@ -178,20 +184,22 @@ async def search_songs(
     return result.scalars().all()
 
 
-# ─── Get single song ──────────────────────────────────────────────────────────
+# ─── Get single song ────────────────────────────────────────────────────────
 
 @app.get("/songs/{song_id}", response_model=SongOut)
 async def get_song(song_id: str, db: AsyncSession = Depends(get_db)):
+    """Get detailed music analysis for a single song"""
     song = await db.get(Song, song_id)
     if not song:
         raise HTTPException(404, "Song not found")
     return song
 
 
-# ─── List all songs ───────────────────────────────────────────────────────────
+# ─── List all songs ────────────────────────────────────────────────────────
 
 @app.get("/songs", response_model=list[SearchResult])
 async def list_songs(limit: int = Query(50, le=200), db: AsyncSession = Depends(get_db)):
+    """List all analyzed songs (most recent first)"""
     result = await db.execute(select(Song).order_by(Song.created_at.desc()).limit(limit))
     return result.scalars().all()
 
@@ -207,7 +215,7 @@ async def transcribe_song(
     file: UploadFile = File(...),
     db: AsyncSession = Depends(get_db),
 ):
-    """Upload audio and run Basic Pitch transcription in background."""
+    """Upload audio and run Basic Pitch transcription in background to get note-for-note sheet music"""
     song = await db.get(Song, song_id)
     if not song:
         raise HTTPException(404, "Song not found")
@@ -231,14 +239,15 @@ async def run_transcription(song_id: str, audio_path: str):
 
 @app.get("/songs/{song_id}/transcribe")
 async def get_transcription(song_id: str):
-    """Get transcription result. Returns empty list if still processing."""
+    """Get transcription result (returns empty list if still processing)"""
     if song_id not in transcription_cache:
         return {"status": "processing", "notes": []}
     return {"status": "done", "notes": transcription_cache[song_id]}
 
 
-# ─── Health check ─────────────────────────────────────────────────────────────
+# ─── Health check ──────────────────────────────────────────────────────────
 
 @app.get("/health")
 async def health():
+    """Check if backend is running"""
     return {"status": "ok"}
