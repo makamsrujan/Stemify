@@ -82,10 +82,10 @@ pip install basic-pitch   # for sheet music transcription
 
 # requires PostgreSQL running
 createdb stemify
-uvicorn main:app --reload --port 8000
+uvicorn main:app --reload --port 8001
 ```
 
-Backend API docs available at **http://localhost:8000/docs**
+Backend API docs available at **http://localhost:8001/docs**
 
 ---
 

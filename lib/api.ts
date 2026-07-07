@@ -1,6 +1,6 @@
 const BASE_URL = typeof window !== 'undefined' && window.location.hostname === 'localhost'
-  ? 'http://localhost:8000'       // browser on same machine
-  : 'http://192.168.1.9:8000';   // phone on local WiFi
+  ? 'http://localhost:8001'       // browser on same machine
+  : 'http://192.168.1.9:8001';   // phone on local WiFi
 
 export interface SongRecord {
   id: string;

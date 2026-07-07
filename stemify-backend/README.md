@@ -22,7 +22,7 @@ cp .env.example .env
 createdb stemify
 
 # 6. Run the server
-uvicorn main:app --reload --port 8000
+uvicorn main:app --reload --port 8001
 ```
 
 ## API Endpoints
@@ -43,4 +43,4 @@ uvicorn main:app --reload --port 8000
 
 ## Interactive API Docs
 
-Visit http://localhost:8000/docs after starting the server.
+Visit http://localhost:8001/docs after starting the server.
