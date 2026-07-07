@@ -19,7 +19,7 @@ from stems import separate_stems
 from transcribe import transcribe_audio
 from schemas import SongOut, SongSave, SearchResult
 
-app = FastAPI(title="Stemify Backend", version="1.0.0")
+app = FastAPI(title="Stemify Pro", description="Music analysis app - Detect key, BPM, chords, lyrics, and AI stem separation", version="1.0.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -35,7 +35,7 @@ async def startup():
     await init_db()
 
 
-# ─── Save analysis ────────────────────────────────────────────────────────────
+# ─── Save analysis ──────────────────────────────────────────────────────────[...]
 
 @app.post("/songs", response_model=SongOut)
 async def save_song(body: SongSave, db: AsyncSession = Depends(get_db)):
@@ -141,7 +141,7 @@ async def get_stem(song_id: str, part: str, db: AsyncSession = Depends(get_db)):
     return FileResponse(path, media_type="audio/mpeg")
 
 
-# ─── Search ───────────────────────────────────────────────────────────────────
+# ─── Search ────────────────────────────────────────────────────────────[...]
 
 @app.get("/songs/search", response_model=list[SearchResult])
 async def search_songs(
@@ -178,7 +178,7 @@ async def search_songs(
     return result.scalars().all()
 
 
-# ─── Get single song ──────────────────────────────────────────────────────────
+# ─── Get single song ─────────────────────────────────────────────────────────[...]
 
 @app.get("/songs/{song_id}", response_model=SongOut)
 async def get_song(song_id: str, db: AsyncSession = Depends(get_db)):
@@ -188,7 +188,7 @@ async def get_song(song_id: str, db: AsyncSession = Depends(get_db)):
     return song
 
 
-# ─── List all songs ───────────────────────────────────────────────────────────
+# ─── List all songs ────────────────────────────────────────────────────────[...]
 
 @app.get("/songs", response_model=list[SearchResult])
 async def list_songs(limit: int = Query(50, le=200), db: AsyncSession = Depends(get_db)):
@@ -237,7 +237,7 @@ async def get_transcription(song_id: str):
     return {"status": "done", "notes": transcription_cache[song_id]}
 
 
-# ─── Health check ─────────────────────────────────────────────────────────────
+# ─── Health check ──────────────────────────────────────────────────────────[...]
 
 @app.get("/health")
 async def health():
