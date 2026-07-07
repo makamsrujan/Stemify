@@ -1,0 +1,28 @@
+[package]
+name = "stemify"
+version = "1.0.0"
+description = "Analyze any song — key, BPM, lyrics, chords and stems"
+authors = ["Srujan"]
+edition = "2021"
+
+[lib]
+name = "stemify_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[[bin]]
+name = "stemify"
+path = "src/main.rs"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-shell = "2"
+
+[profile.release]
+panic = "abort"
+codegen-units = 1
+lto = true
+opt-level = "s"
+strip = true

@@ -1,0 +1,26 @@
+{
+  "name": "stemify",
+  "version": "1.0.0",
+  "description": "extract lyrics , stems, and other instrument details from a given audio file",
+  "main": "generate-icons.js",
+  "scripts": {
+    "tauri": "tauri",
+    "dev": "tauri dev",
+    "build": "tauri build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/makamsrujan/Stemify.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/makamsrujan/Stemify/issues"
+  },
+  "homepage": "https://github.com/makamsrujan/Stemify#readme",
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.11.3"
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "name": "Stemify",
+  "short_name": "Stemify",
+  "description": "Analyze any song — key, BPM, lyrics, chords, stems and more.",
+  "start_url": "/stemify_v6.html",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#1DB954",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [],
+  "categories": ["music", "entertainment", "utilities"]
+}
