@@ -41,6 +41,8 @@ uvicorn main:app --reload --port 8001
 | GET | /songs/{id}/stems/other | Stream other audio |
 | GET | /health | Health check |
 
-## Interactive API Docs
+## Links
 
-Visit **http://localhost:8001/docs** after starting the server.
+Open **http://localhost:8001** in your browser.
+
+Interactive API docs available at **http://localhost:8001/docs**.

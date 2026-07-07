@@ -85,7 +85,9 @@ createdb stemify
 uvicorn main:app --reload --port 8001
 ```
 
-Backend API docs available at **http://localhost:8001/docs**
+Open **http://localhost:8001** in your browser.
+
+Interactive API docs available at **http://localhost:8001/docs**.
 
 ---
 

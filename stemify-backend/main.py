@@ -39,6 +39,14 @@ async def startup():
     await init_db()
 
 
+APP_HTML = Path(__file__).parent.parent / "stemify_v6.html"
+
+
+@app.get("/")
+async def index():
+    return FileResponse(APP_HTML)
+
+
 # ─── Save analysis ──────────────────────────────────────────────────────────
 
 @app.post("/songs", response_model=SongOut)
