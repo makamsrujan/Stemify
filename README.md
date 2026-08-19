@@ -74,10 +74,16 @@ npx expo start --web    # open in browser
 
 ### Backend (Python)
 
+#### macOS / Linux
+
 ```bash
 cd stemify-backend
+
+# Create and activate virtual environment
 python3 -m venv venv
 source venv/bin/activate
+
+# Install dependencies
 pip install -r requirements.txt
 pip install basic-pitch
 
@@ -85,7 +91,27 @@ pip install basic-pitch
 createdb stemify
 
 # Start the server
-uvicorn main:app --reload --port 8001
+python -m uvicorn main:app --reload --port 8001
+```
+
+#### Windows
+
+```bash
+cd stemify-backend
+
+# Create and activate virtual environment
+python -m venv venv
+venv\Scripts\activate
+
+# Install dependencies
+pip install -r requirements.txt
+pip install basic-pitch
+
+# Set up PostgreSQL
+createdb stemify
+
+# Start the server
+python -m uvicorn main:app --reload --port 8001
 ```
 
 Open **http://localhost:8001** in your browser.
