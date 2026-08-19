@@ -75,13 +75,16 @@ npx expo start --web    # open in browser
 ### Backend (Python)
 
 ```bash
-cd stemify-pro/stemify-backend
-python3 -m venv venv && source venv/bin/activate
+cd stemify-backend
+python3 -m venv venv
+source venv/bin/activate
 pip install -r requirements.txt
-pip install basic-pitch   # for sheet music transcription
+pip install basic-pitch
 
-# requires PostgreSQL running
+# Set up PostgreSQL
 createdb stemify
+
+# Start the server
 uvicorn main:app --reload --port 8001
 ```
 
